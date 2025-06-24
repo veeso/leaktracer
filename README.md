@@ -23,6 +23,8 @@
 
 ## Introduction
 
+A Rust allocator to trace memory allocations in Rust programs, by intercepting the allocations.
+
 ## Support the developer
 
 If you like **maybe-fut**, please consider a little donation 🥳

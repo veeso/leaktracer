@@ -1,4 +1,4 @@
-//! A tool to trace memory allocations in Rust programs, by intercepting the allocator.
+//! A Rust allocator to trace memory allocations in Rust programs, by intercepting the allocations.
 
 pub fn add(left: u64, right: u64) -> u64 {
     left + right
