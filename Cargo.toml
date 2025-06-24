@@ -16,3 +16,13 @@ categories = [
 ]
 
 [dependencies]
+libc = "0.2"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["full"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+
+[[example]]
+name = "tracing"
+path = "examples/tracing.rs"
