@@ -1,0 +1,18 @@
+[package]
+name = "leaktracer"
+version = "0.1.0"
+edition = "2024"
+homepage = "https://github.com/veeso/leaktracer"
+description = "A tool to trace memory allocations in Rust programs, by intercepting the allocator."
+authors = ["Christian Visintin <christian.visintin@veeso.dev>"]
+license = "MIT"
+repository = "https://github.com/veeso/leaktracer"
+readme = "README.md"
+keywords = ["memory", "allocator", "leak", "trace", "debug"]
+categories = [
+  "development-tools::debugging",
+  "development-tools",
+  "memory-management",
+]
+
+[dependencies]
