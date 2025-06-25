@@ -10,6 +10,7 @@ static ALLOCATOR: LeaktracerAllocator = LeaktracerAllocator::init();
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    leaktracer::init_symbol_table(&["examples", "leaktracer", "tracing"]);
     // Initialize tracing
     init_log()?;
     // Log an event
@@ -17,6 +18,40 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         "Starting the application... Allocated {} bytes",
         ALLOCATOR.allocated()
     );
+
+    // run a task that allocates some memory
+    let task_1 = tokio::spawn(task(1024));
+
+    // Run another task that allocates some memory
+    let task_2 = tokio::spawn(task(2048));
+
+    // print allocations
+    tracing::info!("Total allocated bytes: {}", ALLOCATOR.allocated());
+    leaktracer::with_symbol_table(|table| {
+        for (name, symbol) in table.iter() {
+            tracing::info!(
+                "Symbol: {name}, Allocated: {}, Count: {}",
+                symbol.allocated(),
+                symbol.count()
+            );
+        }
+    })?;
+
+    // Wait for the task to complete
+    let _result = task_1.await?;
+    let _another_result = task_2.await?;
+
+    let _buff = function_which_allocates();
+
+    leaktracer::with_symbol_table(|table| {
+        for (name, symbol) in table.iter() {
+            tracing::info!(
+                "Symbol: {name}, Allocated: {}, Count: {}",
+                symbol.allocated(),
+                symbol.count()
+            );
+        }
+    })?;
 
     // Log completion
     tracing::info!(
@@ -41,4 +76,16 @@ fn init_log() -> Result<(), Box<dyn std::error::Error>> {
     tracing::subscriber::set_global_default(registry)?;
 
     Ok(())
+}
+
+async fn task(sz: usize) -> Vec<u8> {
+    let vec: Vec<u8> = vec![0; sz]; // Allocate 1kb
+    tracing::info!("Allocated {} bytes in the task", vec.len());
+    vec
+}
+
+fn function_which_allocates() -> Vec<u8> {
+    let vec: Vec<u8> = vec![0; 1024]; // Allocate 1kb
+    tracing::info!("Allocated {} bytes in the allocating function", vec.len());
+    vec
 }

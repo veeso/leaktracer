@@ -2,6 +2,7 @@
 name = "leaktracer"
 version = "0.1.0"
 edition = "2024"
+include = ["src/**/*", "examples/**/*", "LICENSE", "README.md", "CHANGELOG.md"]
 homepage = "https://github.com/veeso/leaktracer"
 description = "A Rust allocator to trace memory allocations in Rust programs, by intercepting the allocations."
 authors = ["Christian Visintin <christian.visintin@veeso.dev>"]
@@ -16,7 +17,7 @@ categories = [
 ]
 
 [dependencies]
-libc = "0.2"
+backtrace = "0.3"
 
 [dev-dependencies]
 tokio = { version = "1", features = ["full"] }
@@ -26,3 +27,7 @@ tracing-subscriber = "0.3"
 [[example]]
 name = "tracing"
 path = "examples/tracing.rs"
+
+[[example]]
+name = "backtrace"
+path = "examples/backtrace.rs"
