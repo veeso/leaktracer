@@ -27,7 +27,3 @@ tracing-subscriber = "0.3"
 [[example]]
 name = "tracing"
 path = "examples/tracing.rs"
-
-[[example]]
-name = "backtrace"
-path = "examples/backtrace.rs"
