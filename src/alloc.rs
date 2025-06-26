@@ -68,15 +68,21 @@ where
         return;
     }
 
+    // prevent allocations DURING lock acquisition
+    IN_ALLOC.with(|cell| cell.set(true));
+
     let Ok(mut lock) = SYMBOL_TABLE
         .get()
         .expect("Symbol table not initialized")
         .lock()
     else {
+        IN_ALLOC.with(|cell| cell.set(false));
         return;
     };
 
-    f(&mut lock)
+    f(&mut lock);
+
+    IN_ALLOC.with(|cell| cell.set(false));
 }
 
 /// An enumeration representing the type of allocation operation being traced.
