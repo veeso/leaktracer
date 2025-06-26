@@ -2,6 +2,7 @@ use backtrace::BacktraceSymbol;
 
 const UNKNOWN: &str = "<unknown>";
 
+/// A list of symbols to ignore when getting the demangled symbol name.
 const IGNORE_LIST: &[&str] = &[
     "leaktracer::symbols::demangle::get_demangled_symbol",
     "leaktracer::symbols::SymbolTable::alloc",

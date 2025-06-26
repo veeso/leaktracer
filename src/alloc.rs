@@ -9,7 +9,8 @@ thread_local! {
     static IN_ALLOC: Cell<bool> = const { Cell::new(false) };
 }
 
-/// Initial size of the symbol table. This is used to preallocate the symbol table to avoid reallocations.
+/// Initial size of the symbol table.
+/// This is used to preallocate the symbol table to avoid reallocations.
 const DEFAULT_SYMBOL_TABLE_SIZE: usize = 1024;
 
 static SYMBOL_TABLE: OnceLock<Mutex<SymbolTable>> = OnceLock::new();
@@ -32,7 +33,7 @@ pub struct LeaktracerAllocator {
 /// Initializes the leak tracer with a symbol table of the given size.
 ///
 /// Provide the modules to be traced as a slice of static strings.
-/// Providing modules is necessary to filter out allocations that are not relevant to the user (such as from std, tokio, etc.).
+/// Providing modules is necessary to filter out allocations that are not relevant to the user (such as from [`std`], [`tokio`], etc.).
 pub fn init_symbol_table(modules: &'static [&'static str]) {
     SYMBOL_TABLE.get_or_init(|| Mutex::new(SymbolTable::new(DEFAULT_SYMBOL_TABLE_SIZE, modules)));
 }

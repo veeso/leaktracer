@@ -92,6 +92,15 @@ leaktracer::with_symbol_table(|table| {
 })?;
 ```
 
+You can also access the full amount of memory allocated and the total count of allocations by using the `LeaktracerAllocator` methods:
+
+```rust
+println!(
+    "Allocated {} bytes",
+    ALLOCATOR.allocated()
+);
+```
+
 ## Example
 
 You can find an example in the `examples` folder at `examples/tracing.rs`.
@@ -104,11 +113,11 @@ cargo run --example tracing
 
 ## Debug only
 
-The `LeaktracerAllocator` is meant to be used in debug mode only, as it uses the `backtrace` crate to get the call stack, which is not available in release mode and it's extremely slow and expensive. Therefore, it is recommended to use this library only in debug mode, to trace memory allocations and leaks during development.
+The `LeaktracerAllocator` is meant to be used in debug mode only, as it uses the `backtrace` crate to get the call stack, which is not available in release mode and it's extremely slow and expensive. Therefore, it is not possible to use it in release mode.
 
 ## Support the developer
 
-If you like **maybe-fut**, please consider a little donation 🥳
+If you like **leaktracer**, please consider a little donation 🥳
 
 [![ko-fi](https://img.shields.io/badge/Ko--fi-F16061?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/veeso)
 [![PayPal](https://img.shields.io/badge/PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://www.paypal.me/chrisintin)
