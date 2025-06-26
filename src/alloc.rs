@@ -1,7 +1,7 @@
 use std::alloc::{GlobalAlloc, Layout, System};
 use std::cell::Cell;
 use std::sync::atomic::AtomicUsize;
-use std::sync::{Mutex, OnceLock, PoisonError};
+use std::sync::{Mutex, MutexGuard, OnceLock, PoisonError};
 
 use crate::symbols::SymbolTable;
 
@@ -47,42 +47,28 @@ pub fn with_symbol_table<F, R>(
 where
     F: FnOnce(&SymbolTable) -> R,
 {
-    let lock = SYMBOL_TABLE
-        .get()
-        .expect("Symbol table not initialized")
-        .lock()?;
-
-    Ok(f(&lock))
-}
-
-/// Provides a way to access the symbol table in a mutable thread-safe manner.
-///
-/// Internal only. The user MUSTN'T be able to mutate the symbol table directly.
-fn with_symbol_table_mut<F>(f: F)
-where
-    F: FnOnce(&mut SymbolTable),
-{
-    if SYMBOL_TABLE.get().is_none() {
-        // if we are for instance running on tokio, the allocations ARE MADE BEFORE the user has a chance to
-        // initialize the symbol table, so we just ignore.
-        return;
-    }
-
     // prevent allocations DURING lock acquisition
     IN_ALLOC.with(|cell| cell.set(true));
 
-    let Ok(mut lock) = SYMBOL_TABLE
+    let lock = match SYMBOL_TABLE
         .get()
         .expect("Symbol table not initialized")
         .lock()
-    else {
-        IN_ALLOC.with(|cell| cell.set(false));
-        return;
+    {
+        Ok(lock) => lock,
+        Err(poisoned) => {
+            // free alloc
+            IN_ALLOC.with(|cell| cell.set(false));
+            // If the lock is poisoned, we return the poisoned error
+            return Err(poisoned);
+        }
     };
 
-    f(&mut lock);
+    let res = Ok(f(&lock));
 
     IN_ALLOC.with(|cell| cell.set(false));
+
+    res
 }
 
 /// An enumeration representing the type of allocation operation being traced.
@@ -126,29 +112,37 @@ impl LeaktracerAllocator {
     }
 
     /// Traces the allocation, logging the layout of the allocation.
-    fn trace_allocation(&self, layout: Layout) {
+    fn trace_allocation(&self, layout: Layout, table: Option<&mut MutexGuard<SymbolTable>>) {
         // first increment the allocated bytes
         self.allocated
             .fetch_add(layout.size(), std::sync::atomic::Ordering::Relaxed);
-        with_symbol_table_mut(|table| table.alloc(layout.size()));
+        if let Some(table) = table {
+            table.alloc(layout.size());
+        }
     }
 
     /// Traces the deallocation, logging the layout of the deallocation.
-    fn trace_deallocation(&self, layout: Layout) {
+    fn trace_deallocation(&self, layout: Layout, table: Option<&mut MutexGuard<SymbolTable>>) {
         // first decrement the allocated bytes
         self.allocated
             .fetch_sub(layout.size(), std::sync::atomic::Ordering::Relaxed);
-        with_symbol_table_mut(|table| table.dealloc(layout.size()));
+        if let Some(table) = table {
+            table.dealloc(layout.size());
+        }
     }
 
     /// Traces the allocation or deallocation operation using the [`Layout`], depending on the [`AllocOp`] type.
     fn trace(&self, layout: Layout, op: AllocOp) {
+        // lock symbol table to avoid deadlocks
+        let mut lock = SYMBOL_TABLE.get().and_then(|table| table.lock().ok());
+
         self.enter_alloc();
         match op {
-            AllocOp::Alloc => self.trace_allocation(layout),
-            AllocOp::Dealloc => self.trace_deallocation(layout),
+            AllocOp::Alloc => self.trace_allocation(layout, lock.as_mut()),
+            AllocOp::Dealloc => self.trace_deallocation(layout, lock.as_mut()),
         }
         self.exit_alloc();
+        drop(lock);
     }
 }
 
