@@ -132,9 +132,6 @@
 
 #![doc(html_playground_url = "https://play.rust-lang.org")]
 
-#[cfg(not(debug_assertions))]
-compile_error!("leaktracer can only be used in debug mode.");
-
 mod alloc;
 mod symbols;
 
