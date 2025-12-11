@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.5
+
+Released on 2025-12-11
+
+- Prevent underflow in allocated bytes counter during deallocation.
+
 ## 0.1.4
 
 Released on 2025-06-26

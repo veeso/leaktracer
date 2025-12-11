@@ -56,12 +56,23 @@ impl SymbolTable {
         let name = demangle::get_demangled_symbol(self.modules);
 
         if let Some(symbol) = self.symbols.get_mut(name) {
+            // prevent underflow
             symbol
                 .allocated
-                .fetch_sub(bytes, std::sync::atomic::Ordering::Relaxed);
+                .fetch_update(
+                    std::sync::atomic::Ordering::Relaxed,
+                    std::sync::atomic::Ordering::Relaxed,
+                    |current| Some(current.saturating_sub(bytes)),
+                )
+                .ok();
             symbol
                 .count
-                .fetch_sub(1, std::sync::atomic::Ordering::Relaxed);
+                .fetch_update(
+                    std::sync::atomic::Ordering::Relaxed,
+                    std::sync::atomic::Ordering::Relaxed,
+                    |current| Some(current.saturating_sub(1)),
+                )
+                .ok();
         }
     }
 

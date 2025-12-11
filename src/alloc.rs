@@ -124,8 +124,14 @@ impl LeaktracerAllocator {
     /// Traces the deallocation, logging the layout of the deallocation.
     fn trace_deallocation(&self, layout: Layout, table: Option<&mut MutexGuard<SymbolTable>>) {
         // first decrement the allocated bytes
+        // ensure we do not underflow
         self.allocated
-            .fetch_sub(layout.size(), std::sync::atomic::Ordering::Relaxed);
+            .fetch_update(
+                std::sync::atomic::Ordering::Relaxed,
+                std::sync::atomic::Ordering::Relaxed,
+                |current| Some(current.saturating_sub(layout.size())),
+            )
+            .ok();
         if let Some(table) = table {
             table.dealloc(layout.size());
         }
