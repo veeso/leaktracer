@@ -39,13 +39,15 @@ impl SymbolTable {
     }
 
     /// Increments the allocated bytes for a [`Symbol`].
-    pub(crate) fn alloc(&mut self, bytes: usize) {
+    pub(crate) fn alloc(&mut self, alloc_id: AllocId, bytes: usize) {
         let name = demangle::get_demangled_symbol(self.modules);
 
         // If the symbol does not exist, we create it with the given name.
         if !self.symbols.contains_key(&name) {
             self.insert(name);
         }
+        // insert the mapping from alloc_id to symbol name
+        self.ptr_to_symbol.insert(alloc_id, name);
 
         let symbol = self.symbols.get_mut(name).expect("Symbol should exist");
 
@@ -58,8 +60,11 @@ impl SymbolTable {
     }
 
     /// Decrements the allocated bytes for a [`Symbol`].
-    pub(crate) fn dealloc(&mut self, bytes: usize) {
-        let name = demangle::get_demangled_symbol(self.modules);
+    pub(crate) fn dealloc(&mut self, alloc_id: AllocId, bytes: usize) {
+        // remove the mapping from alloc_id to symbol name
+        let Some(name) = self.ptr_to_symbol.remove(&alloc_id) else {
+            return;
+        };
 
         if let Some(symbol) = self.symbols.get_mut(name) {
             // prevent underflow
@@ -122,25 +127,34 @@ mod test {
 
     #[test]
     fn test_should_allocate_symbol() {
+        const ALLOC_ID: AllocId = 42;
+        const ALLOC_ID_2: AllocId = 43;
+
         let mut table = SymbolTable::new(10, &["leaktracer"]);
-        table.alloc(100);
+        table.alloc(ALLOC_ID, 100);
         // get name of the caller
         let name = demangle::get_demangled_symbol(&["leaktracer"]);
         let symbol = table.get(name).expect("Symbol should exist");
         assert_eq!(symbol.allocated(), 100);
         assert_eq!(symbol.count(), 1);
+        // check if ptr to symbol mapping exists
+        assert_eq!(table.ptr_to_symbol.get(&ALLOC_ID), Some(&name));
 
         // allocate again
-        table.alloc(50);
+        table.alloc(ALLOC_ID_2, 50);
         let symbol = table.get(name).expect("Symbol should exist");
         assert_eq!(symbol.allocated(), 150);
         assert_eq!(symbol.count(), 2);
+        // check if ptr to symbol mapping exists
+        assert_eq!(table.ptr_to_symbol.get(&ALLOC_ID_2), Some(&name));
 
         // deallocate
-        table.dealloc(40);
+        table.dealloc(ALLOC_ID, 40);
         let symbol = table.get(name).expect("Symbol should exist");
         assert_eq!(symbol.allocated(), 110);
         assert_eq!(symbol.count(), 1);
+        // check if removed
+        assert_eq!(table.ptr_to_symbol.get(&ALLOC_ID), None);
     }
 
     #[test]

@@ -4,13 +4,17 @@ use leaktracer::LeaktracerAllocator;
 static ALLOCATOR: LeaktracerAllocator = LeaktracerAllocator::init();
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    leaktracer::init_symbol_table(&["examples", "leaktracer", "tracing"]);
+    leaktracer::init_symbol_table(&["examples", "leaktracer", "diff_alloc_location"]);
 
     let allocated = function_which_allocates();
+    println!("After allocation:");
     print_stats()?;
+    println!();
 
     drop(allocated);
+    println!("After dropping the allocated memory:");
     print_stats()?;
+    println!();
 
     Ok(())
 }
