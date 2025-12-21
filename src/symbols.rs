@@ -3,6 +3,8 @@ mod demangle;
 use std::collections::HashMap;
 use std::sync::atomic::AtomicUsize;
 
+pub type AllocId = usize;
+
 /// A [`Symbol`] table.
 ///
 /// Each [`Symbol`] is identified by the module name (e.g. `leaktracer::alloc`).
@@ -10,7 +12,10 @@ use std::sync::atomic::AtomicUsize;
 pub struct SymbolTable {
     /// The modules that are being traced.
     modules: &'static [&'static str],
+    /// Maps symbol names to their corresponding [`Symbol`]s.
     symbols: HashMap<&'static str, Symbol>,
+    /// Maps pointers to symbols for quick lookup during deallocation.
+    ptr_to_symbol: HashMap<AllocId, &'static str>,
 }
 
 impl SymbolTable {
@@ -19,6 +24,7 @@ impl SymbolTable {
         Self {
             modules,
             symbols: HashMap::with_capacity(size),
+            ptr_to_symbol: HashMap::with_capacity(size),
         }
     }
 
