@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.6
+
+Released on 2025-12-20
+
+- [Issue #2](https://github.com/veeso/leaktracer/issues/2): Correctly trace deallocations by storing a map between allocation IDs and their allocation symbol location.
+  - This has also improved performance a lot by avoiding symbol resolution during deallocation, so it should be basically x2 faster now.
+- Fixed leaktracer not working on MacOS due to how the allocation works there.
+
 ## 0.1.5
 
 Released on 2025-12-11

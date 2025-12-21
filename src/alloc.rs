@@ -3,7 +3,7 @@ use std::cell::Cell;
 use std::sync::atomic::AtomicUsize;
 use std::sync::{Mutex, MutexGuard, OnceLock, PoisonError};
 
-use crate::symbols::SymbolTable;
+use crate::symbols::{AllocId, SymbolTable};
 
 thread_local! {
     static IN_ALLOC: Cell<bool> = const { Cell::new(false) };
@@ -98,7 +98,7 @@ impl LeaktracerAllocator {
     ///
     /// This is determined by checking if the `IN_ALLOC` thread-local variable is set to `false`.
     fn is_external_allocation(&self) -> bool {
-        !IN_ALLOC.get()
+        IN_ALLOC.with(|cell| !cell.get())
     }
 
     /// Enters the allocation context, marking that an allocation is being made.
@@ -112,17 +112,27 @@ impl LeaktracerAllocator {
     }
 
     /// Traces the allocation, logging the layout of the allocation.
-    fn trace_allocation(&self, layout: Layout, table: Option<&mut MutexGuard<SymbolTable>>) {
+    fn trace_allocation(
+        &self,
+        alloc_id: AllocId,
+        layout: Layout,
+        table: Option<&mut MutexGuard<SymbolTable>>,
+    ) {
         // first increment the allocated bytes
         self.allocated
             .fetch_add(layout.size(), std::sync::atomic::Ordering::Relaxed);
         if let Some(table) = table {
-            table.alloc(layout.size());
+            table.alloc(alloc_id, layout.size());
         }
     }
 
     /// Traces the deallocation, logging the layout of the deallocation.
-    fn trace_deallocation(&self, layout: Layout, table: Option<&mut MutexGuard<SymbolTable>>) {
+    fn trace_deallocation(
+        &self,
+        alloc_id: AllocId,
+        layout: Layout,
+        table: Option<&mut MutexGuard<SymbolTable>>,
+    ) {
         // first decrement the allocated bytes
         // ensure we do not underflow
         self.allocated
@@ -133,38 +143,57 @@ impl LeaktracerAllocator {
             )
             .ok();
         if let Some(table) = table {
-            table.dealloc(layout.size());
+            table.dealloc(alloc_id, layout.size());
         }
     }
 
     /// Traces the allocation or deallocation operation using the [`Layout`], depending on the [`AllocOp`] type.
-    fn trace(&self, layout: Layout, op: AllocOp) {
+    fn trace(&self, alloc_id: AllocId, layout: Layout, op: AllocOp) {
+        self.enter_alloc();
         // lock symbol table to avoid deadlocks
         let mut lock = SYMBOL_TABLE.get().and_then(|table| table.lock().ok());
 
-        self.enter_alloc();
         match op {
-            AllocOp::Alloc => self.trace_allocation(layout, lock.as_mut()),
-            AllocOp::Dealloc => self.trace_deallocation(layout, lock.as_mut()),
+            AllocOp::Alloc => self.trace_allocation(alloc_id, layout, lock.as_mut()),
+            AllocOp::Dealloc => self.trace_deallocation(alloc_id, layout, lock.as_mut()),
         }
-        self.exit_alloc();
         drop(lock);
+        self.exit_alloc();
+    }
+
+    /// Converts a pointer to an [`AllocId`].
+    fn alloc_id_from_ptr(&self, ptr: *mut u8) -> AllocId {
+        ptr as AllocId
     }
 }
 
 unsafe impl GlobalAlloc for LeaktracerAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        // if we are already in an allocation, just forward to the system allocator
+        // this prevents issues on macos where allocations are made during symbol resolution
+        if IN_ALLOC.with(|c| c.get()) {
+            return unsafe { System.alloc(layout) };
+        }
+
         let ptr = unsafe { System.alloc(layout) };
-        // if the allocation is not null AND the allocation is external, trace the allocation
+        // if the allocation is not null AND the allocation is an external allocation, trace the allocation
         if !ptr.is_null() && self.is_external_allocation() {
-            self.trace(layout, AllocOp::Alloc);
+            let alloc_id = self.alloc_id_from_ptr(ptr);
+            self.trace(alloc_id, layout, AllocOp::Alloc);
         }
         ptr
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        // if we are already in an allocation, just forward to the system allocator
+        // this prevents issues on macos where allocations are made during symbol resolution
+        if IN_ALLOC.with(|c| c.get()) {
+            return unsafe { System.dealloc(ptr, layout) };
+        }
+
         if !ptr.is_null() && self.is_external_allocation() {
-            self.trace(layout, AllocOp::Dealloc);
+            let alloc_id = self.alloc_id_from_ptr(ptr);
+            self.trace(alloc_id, layout, AllocOp::Dealloc);
         }
         unsafe { System.dealloc(ptr, layout) };
     }
@@ -192,22 +221,24 @@ mod test {
     #[test]
     fn test_should_trace_allocations() {
         init_symbol_table(&["leaktracer"]);
+        const ALLOC_ID: AllocId = 42;
 
         let allocator = LeaktracerAllocator::init();
         let layout = Layout::from_size_align(1024, 8).unwrap();
-        allocator.trace(layout, AllocOp::Alloc);
+        allocator.trace(ALLOC_ID, layout, AllocOp::Alloc);
         assert_eq!(allocator.allocated(), 1024);
     }
 
     #[test]
     fn test_should_trace_deallocations() {
         init_symbol_table(&["leaktracer"]);
+        const ALLOC_ID: AllocId = 42;
 
         let allocator = LeaktracerAllocator::init();
         let layout = Layout::from_size_align(1024, 8).unwrap();
-        allocator.trace(layout, AllocOp::Alloc);
+        allocator.trace(ALLOC_ID, layout, AllocOp::Alloc);
         assert_eq!(allocator.allocated(), 1024);
-        allocator.trace(layout, AllocOp::Dealloc);
+        allocator.trace(ALLOC_ID, layout, AllocOp::Dealloc);
         assert_eq!(allocator.allocated(), 0);
     }
 }

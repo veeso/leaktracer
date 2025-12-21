@@ -111,6 +111,38 @@ You can run the example with:
 cargo run --example tracing
 ```
 
+The output shows how the output can be handled, but beware that it can be handled however you want, this is just a simple example.
+
+```txt
+2025-12-21T10:43:29.303057Z  INFO tracing:17: Starting the application... Allocated 266268 bytes
+2025-12-21T10:43:29.326319Z  INFO tracing:29: Total allocated bytes: 268252
+2025-12-21T10:43:29.337938Z  INFO tracing:83: Allocated 1024 bytes in the task
+2025-12-21T10:43:29.341897Z  INFO tracing:83: Allocated 2048 bytes in the task
+2025-12-21T10:43:29.344779Z  INFO tracing:32: Symbol: tracing_subscriber::registry, Allocated: 32768, Count: 1
+2025-12-21T10:43:29.344789Z  INFO tracing:32: Symbol: tracing_core::callsite::dispatchers::Dispatchers::register_dispatch, Allocated: 96, Count: 1
+2025-12-21T10:43:29.344795Z  INFO tracing:32: Symbol: tracing_core::dispatcher::Dispatch::new, Allocated: 600, Count: 1
+2025-12-21T10:43:29.344802Z  INFO tracing:32: Symbol: tracing_subscriber::filter::layer_filters::FilterState::did_enable, Allocated: 192, Count: 2
+2025-12-21T10:43:29.344807Z  INFO tracing:32: Symbol: tracing::task::{{closure}}, Allocated: 3072, Count: 2
+2025-12-21T10:43:29.344811Z  INFO tracing:32: Symbol: tracing_subscriber::fmt::format::Writer::write_fmt, Allocated: 512, Count: 3
+2025-12-21T10:43:29.344815Z  INFO tracing:32: Symbol: tracing::main::{{closure}}, Allocated: 512, Count: 2
+2025-12-21T10:43:29.344819Z  INFO tracing:32: Symbol: tracing_subscriber::fmt::writer::MakeWriter::make_writer_for, Allocated: 1024, Count: 1
+2025-12-21T10:43:29.344823Z  INFO tracing:32: Symbol: tracing_subscriber::layer::context::Context<S>::lookup_current, Allocated: 320, Count: 3
+2025-12-21T10:43:29.344828Z  INFO tracing:32: Symbol: <unknown>, Allocated: 64, Count: 1
+2025-12-21T10:43:29.345079Z  INFO tracing:89: Allocated 1024 bytes in the allocating function
+2025-12-21T10:43:29.345087Z  INFO tracing:48: Symbol: tracing_subscriber::registry, Allocated: 32768, Count: 1
+2025-12-21T10:43:29.345093Z  INFO tracing:48: Symbol: tracing_core::callsite::dispatchers::Dispatchers::register_dispatch, Allocated: 96, Count: 1
+2025-12-21T10:43:29.345098Z  INFO tracing:48: Symbol: tracing_core::dispatcher::Dispatch::new, Allocated: 600, Count: 1
+2025-12-21T10:43:29.345103Z  INFO tracing:48: Symbol: tracing::function_which_allocates, Allocated: 1024, Count: 1
+2025-12-21T10:43:29.345108Z  INFO tracing:48: Symbol: tracing_subscriber::filter::layer_filters::FilterState::did_enable, Allocated: 192, Count: 2
+2025-12-21T10:43:29.345114Z  INFO tracing:48: Symbol: tracing::task::{{closure}}, Allocated: 3072, Count: 2
+2025-12-21T10:43:29.345118Z  INFO tracing:48: Symbol: tracing_subscriber::fmt::format::Writer::write_fmt, Allocated: 512, Count: 3
+2025-12-21T10:43:29.345123Z  INFO tracing:48: Symbol: tracing::main::{{closure}}, Allocated: 0, Count: 0
+2025-12-21T10:43:29.345127Z  INFO tracing:48: Symbol: tracing_subscriber::fmt::writer::MakeWriter::make_writer_for, Allocated: 1024, Count: 1
+2025-12-21T10:43:29.345132Z  INFO tracing:48: Symbol: tracing_subscriber::layer::context::Context<S>::lookup_current, Allocated: 320, Count: 3
+2025-12-21T10:43:29.345137Z  INFO tracing:48: Symbol: <unknown>, Allocated: 64, Count: 1
+2025-12-21T10:43:29.345140Z  INFO tracing:57: Application finished successfully. Allocated 272220 bytes
+```
+
 ## Debug only
 
 The `LeaktracerAllocator` is meant to be used in debug mode only, as it uses the `backtrace` crate to get the call stack, which is not available in release mode and it's extremely slow and expensive. Therefore, it is not possible to use it in release mode.
