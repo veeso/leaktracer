@@ -98,7 +98,7 @@ impl LeaktracerAllocator {
     ///
     /// This is determined by checking if the `IN_ALLOC` thread-local variable is set to `false`.
     fn is_external_allocation(&self) -> bool {
-        !IN_ALLOC.get()
+        IN_ALLOC.with(|cell| !cell.get())
     }
 
     /// Enters the allocation context, marking that an allocation is being made.
@@ -149,16 +149,16 @@ impl LeaktracerAllocator {
 
     /// Traces the allocation or deallocation operation using the [`Layout`], depending on the [`AllocOp`] type.
     fn trace(&self, alloc_id: AllocId, layout: Layout, op: AllocOp) {
+        self.enter_alloc();
         // lock symbol table to avoid deadlocks
         let mut lock = SYMBOL_TABLE.get().and_then(|table| table.lock().ok());
 
-        self.enter_alloc();
         match op {
             AllocOp::Alloc => self.trace_allocation(alloc_id, layout, lock.as_mut()),
             AllocOp::Dealloc => self.trace_deallocation(alloc_id, layout, lock.as_mut()),
         }
-        self.exit_alloc();
         drop(lock);
+        self.exit_alloc();
     }
 
     /// Converts a pointer to an [`AllocId`].
@@ -169,6 +169,12 @@ impl LeaktracerAllocator {
 
 unsafe impl GlobalAlloc for LeaktracerAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        // if we are already in an allocation, just forward to the system allocator
+        // this prevents issues on macos where allocations are made during symbol resolution
+        if IN_ALLOC.with(|c| c.get()) {
+            return unsafe { System.alloc(layout) };
+        }
+
         let ptr = unsafe { System.alloc(layout) };
         // if the allocation is not null AND the allocation is an external allocation, trace the allocation
         if !ptr.is_null() && self.is_external_allocation() {
@@ -179,6 +185,12 @@ unsafe impl GlobalAlloc for LeaktracerAllocator {
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
+        // if we are already in an allocation, just forward to the system allocator
+        // this prevents issues on macos where allocations are made during symbol resolution
+        if IN_ALLOC.with(|c| c.get()) {
+            return unsafe { System.dealloc(ptr, layout) };
+        }
+
         if !ptr.is_null() && self.is_external_allocation() {
             let alloc_id = self.alloc_id_from_ptr(ptr);
             self.trace(alloc_id, layout, AllocOp::Dealloc);

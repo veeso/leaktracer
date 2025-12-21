@@ -3,6 +3,8 @@ mod demangle;
 use std::collections::HashMap;
 use std::sync::atomic::AtomicUsize;
 
+/// Type alias for allocation identifier.
+/// It is derived from a `*mut u8` pointer.
 pub type AllocId = usize;
 
 /// A [`Symbol`] table.
