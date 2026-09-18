@@ -1,16 +1,24 @@
 # Changelog
 
+All notable changes to this project are documented in this file.
+
 ## 0.1.6
 
-Released on 2025-12-20
+Released on 2026-09-18
 
-- [Issue #2](https://github.com/veeso/leaktracer/issues/2): Correctly trace deallocations by storing a map between allocation IDs and their allocation symbol location.
-  - This has also improved performance a lot by avoiding symbol resolution during deallocation, so it should be basically x2 faster now.
-- Fixed leaktracer not working on MacOS due to how the allocation works there.
+### Fixed
+
+- deallocation done in different function can cause underflow (#3)
+
+> - fix: Fixed deallocation trace by looking up the symbol ONLY at allocation and by storing a pointer -> Symbol table
+>
+> The underflow issue was already solved, this pr added a map to map the ptr to the symbol name to correctly trace the deallocation
 
 ## 0.1.5
 
 Released on 2025-12-11
+
+### Fixed
 
 - Prevent underflow in allocated bytes counter during deallocation.
 
@@ -18,16 +26,15 @@ Released on 2025-12-11
 
 Released on 2025-06-26
 
-- Prevent allocations during lock acquisition to avoid deadlocks.
+### Added
 
-## 0.1.1
+- initial commit
+- allocator
+- Implementation of the allocator and of the tracing system
 
-Released on 2025-06-26
+### Fixed
 
-- Better documentation
-
-## 0.1.0
-
-Released on 2025-06-25
-
-- Initial release of the project.
+- Build only in debug
+- removed release build error
+- Prevent IN_ALLOC to be false during access to the symbol table
+- prevent deadlocks when accessing symbols
