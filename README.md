@@ -3,11 +3,10 @@
 [![license-mit](https://img.shields.io/crates/l/leaktracer.svg)](https://opensource.org/licenses/MIT)
 [![repo-stars](https://img.shields.io/github/stars/veeso/leaktracer?style=flat)](https://github.com/veeso/leaktracer/stargazers)
 [![downloads](https://img.shields.io/crates/d/leaktracer.svg)](https://crates.io/crates/leaktracer)
-[![latest-version](https://img.shields.io/crates/v/leaktracer.svg)](https://crates.io/crates/leaktracer)
-[![ko-fi](https://img.shields.io/badge/donate-ko--fi-red)](https://ko-fi.com/veeso)
+[![latest-version](https://img.shields.io/crates/v/leaktracer.svg?logo=rust)](https://crates.io/crates/leaktracer)
 [![conventional-commits](https://img.shields.io/badge/Conventional%20Commits-1.0.0-%23FE5196?logo=conventionalcommits&logoColor=white)](https://conventionalcommits.org)
 
-[![lib-ci](https://github.com/veeso/leaktracer/actions/workflows/cargo.yml/badge.svg)](https://github.com/veeso/leaktracer/actions)
+[![lib-ci](https://github.com/veeso/leaktracer/actions/workflows/ci.yml/badge.svg)](https://github.com/veeso/leaktracer/actions)
 [![coveralls](https://coveralls.io/repos/github/veeso/leaktracer/badge.svg)](https://coveralls.io/github/veeso/leaktracer)
 [![docs](https://docs.rs/leaktracer/badge.svg)](https://docs.rs/leaktracer)
 
@@ -22,7 +21,6 @@
     - [Accessing the stats](#accessing-the-stats)
   - [Example](#example)
   - [Debug only](#debug-only)
-  - [Support the developer](#support-the-developer)
   - [Changelog](#changelog)
   - [License](#license)
 
@@ -72,7 +70,7 @@ leaktracer::init_symbol_table(&["my_crate_name"]);
 
 The `init_symbol_table` function takes a slice of strings, which are the names of the crates you want to trace. This is useful if you have multiple crates in your project and you want to trace only specific ones.
 
-Why is this necessary? Because the library use the `backtrace` to get the current call stack, but unfortunately the backtrace, is quite *polluted* by other non-relevant calls (such as `std::alloc`, `std::vec`, etc.), so you need to specify which crates you want to trace.
+Why is this necessary? Because the library use the `backtrace` to get the current call stack, but unfortunately the backtrace, is quite _polluted_ by other non-relevant calls (such as `std::alloc`, `std::vec`, etc.), so you need to specify which crates you want to trace.
 
 ### Accessing the stats
 
@@ -95,10 +93,7 @@ leaktracer::with_symbol_table(|table| {
 You can also access the full amount of memory allocated and the total count of allocations by using the `LeaktracerAllocator` methods:
 
 ```rust
-println!(
-    "Allocated {} bytes",
-    ALLOCATOR.allocated()
-);
+println!("Allocated {} bytes", ALLOCATOR.allocated());
 ```
 
 ## Example
@@ -146,13 +141,6 @@ The output shows how the output can be handled, but beware that it can be handle
 ## Debug only
 
 The `LeaktracerAllocator` is meant to be used in debug mode only, as it uses the `backtrace` crate to get the call stack, which is not available in release mode and it's extremely slow and expensive. Therefore, it is not possible to use it in release mode.
-
-## Support the developer
-
-If you like **leaktracer**, please consider a little donation 🥳
-
-[![ko-fi](https://img.shields.io/badge/Ko--fi-F16061?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/veeso)
-[![PayPal](https://img.shields.io/badge/PayPal-00457C?style=for-the-badge&logo=paypal&logoColor=white)](https://www.paypal.me/chrisintin)
 
 ---
 
