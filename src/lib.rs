@@ -57,14 +57,14 @@
 //! This is useful if you have multiple crates in your project and you want to trace only specific ones.
 //!
 //! Why is this necessary? Because the library use the `backtrace` to get the current call stack, but unfortunately the backtrace,
-//! is quite *polluted* by other non-relevant calls (such as [`std::alloc`], [`std::vec`], etc.),
+//! is quite *polluted* by other non-relevant calls (such as [`std::alloc`], [`mod@std::vec`], etc.),
 //! so you need to specify which crates you want to trace.
 //!
 //! ### Accessing the stats
 //!
 //! Of course, once initialized you want to access the stats, to see how many allocations were made, and where they were made.
 //!
-//! You can do this by accessing the `symbol_table` using the [`leaktracer::with_symbol_table`] function, like this:
+//! You can do this by accessing the `symbol_table` using the [`crate::with_symbol_table`] function, like this:
 //!
 //! ```rust
 //! leaktracer::init_symbol_table(&["my_crate_name"]);

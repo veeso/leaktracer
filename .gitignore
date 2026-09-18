@@ -1,3 +1,8 @@
 /target
+coverage/
+lcov*.info
+.env
+.superpowers/
+.claude/
 
 Cargo.lock
